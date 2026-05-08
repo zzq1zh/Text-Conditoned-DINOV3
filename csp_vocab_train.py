@@ -529,6 +529,13 @@ class CspCompositionVocab(nn.Module):
         """
         dev = self.attr_prompt.device if device is None else torch.device(device)
         idx = pair_row_indices.detach().cpu().long().view(-1)
+        n_pairs = int(meta.pair_attr_idx.shape[0])
+        if idx.numel() > 0:
+            min_i, max_i = int(idx.min().item()), int(idx.max().item())
+            if min_i < 0 or max_i >= n_pairs:
+                raise IndexError(
+                    f"compose_pair_indices: indices must be in [0, {n_pairs}); got [{min_i}, {max_i}]"
+                )
         attr = meta.pair_attr_idx.index_select(0, idx).to(dev)
         obj = meta.pair_obj_idx.index_select(0, idx).to(dev)
         return self.compose(attr, obj)
@@ -609,12 +616,12 @@ def _make_csp_eval_forward(
     ) -> tuple[torch.Tensor, torch.Tensor | None]:
         pv = batch["pixel_values"].to(device, non_blocking=True)
         y = batch["labels"].to(device, non_blocking=True)
+        candidate_text_bank = csp_vocab.compose_all_pairs(csp_meta, device=device)
         with torch.amp.autocast(
             device_type=device.type,
             enabled=(device.type == "cuda" and use_amp),
             dtype=torch.float16,
         ):
-            candidate_text_bank = csp_vocab.compose_all_pairs(csp_meta, device=device)
             z = model.encode_image(pv)
             if allowed_t is None:
                 logits = model.score_candidates(z, candidate_text_bank)
@@ -1118,14 +1125,14 @@ def run_post_training(args: argparse.Namespace) -> None:
                 pv = batch["pixel_values"].to(device, non_blocking=True)
                 y = batch["labels"].to(device, non_blocking=True)
                 opt.zero_grad(set_to_none=True)
+                candidate_text_bank = csp_vocab.compose_pair_indices(
+                    csp_meta, train_allowed_t, device=device
+                )
                 with torch.amp.autocast(
                     device_type=device.type,
                     enabled=use_cuda_amp,
                     dtype=torch.float16,
                 ):
-                    candidate_text_bank = csp_vocab.compose_pair_indices(
-                        csp_meta, train_allowed_t, device=device
-                    )
                     z = model.encode_image(pv)
                     y_loc = g2l_train[y]
                     if not (y_loc >= 0).all():

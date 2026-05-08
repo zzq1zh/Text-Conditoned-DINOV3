@@ -1300,14 +1300,15 @@ def run_finetune_csp_vocab(args: argparse.Namespace) -> None:
                 pv = batch["pixel_values"].to(device, non_blocking=True)
                 y = batch["labels"].to(device, non_blocking=True)
                 opt.zero_grad(set_to_none=True)
+                # CLIP + composed inputs_embeds are unstable under fp16 autocast on some GPUs; keep text path fp32.
+                candidate_text_bank = csp_vocab.compose_pair_indices(
+                    csp_meta, train_allowed_t, device=device
+                )
                 with torch.amp.autocast(
                     device_type=device.type,
                     enabled=use_cuda_amp,
                     dtype=torch.float16,
                 ):
-                    candidate_text_bank = csp_vocab.compose_pair_indices(
-                        csp_meta, train_allowed_t, device=device
-                    )
                     z = model.encode_image(pv)
                     y_loc = g2l_train[y]
                     if not (y_loc >= 0).all():
