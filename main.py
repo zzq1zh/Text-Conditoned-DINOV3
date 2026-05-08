@@ -96,6 +96,25 @@ def _extract_model_pixel_values(processed: dict[str, torch.Tensor]) -> torch.Ten
     )
 
 
+def fix_dinov3_rope_periods(model: nn.Module) -> None:
+    """
+    DINOv3 ViT (HF timm wrapper) stores RoPE periods on ``model.rope.periods``.
+    A bfloat16→float32 round-trip matches common Hub usage and avoids dtype/numerical
+    issues when the rest of the model runs in float32 or mixed precision.
+    """
+    rope = getattr(model, "rope", None)
+    if rope is None or not hasattr(rope, "periods"):
+        return
+    periods = rope.periods
+    if not isinstance(periods, torch.Tensor):
+        return
+    fixed = periods.to(torch.bfloat16).to(torch.float32)
+    if isinstance(periods, nn.Parameter):
+        rope.periods = nn.Parameter(fixed, requires_grad=periods.requires_grad)
+    else:
+        rope.register_buffer("periods", fixed)
+
+
 def load_vision_processor(model_id: str) -> Any:
     """
     Load image/video processor for a backbone id.
@@ -124,6 +143,7 @@ def load_vision_backbone_pipeline(
         # Match checkpoint weights; float32 is safest if unset
         dtype = torch.float32
     model = AutoModel.from_pretrained(model_id, dtype=dtype)
+    fix_dinov3_rope_periods(model)
     model.to(dev)
     model.eval()
     processor = load_vision_processor(model_id)
@@ -308,6 +328,7 @@ class TextConditionedVisionModel(nn.Module):
         super().__init__()
         self.freeze_vision_backbone = bool(freeze_vision_backbone)
         self.backbone = AutoModel.from_pretrained(ijepa_id)
+        fix_dinov3_rope_periods(self.backbone)
         if self.freeze_vision_backbone:
             for p in self.backbone.parameters():
                 p.requires_grad = False

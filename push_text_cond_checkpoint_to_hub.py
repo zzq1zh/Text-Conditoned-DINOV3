@@ -17,6 +17,7 @@ from main import (
     DEFAULT_PROMPT_TEMPLATE,
     TextConditionedVisionModel,
     VISION_BACKBONE_PRESETS,
+    fix_dinov3_rope_periods,
     resolve_vision_model_id,
 )
 from text_cond_train import (
@@ -155,6 +156,7 @@ def _verify_loads(model: TextConditionedVisionModel, sd: dict[str, torch.Tensor]
     uexp = [k for k in r.unexpected_keys if not k.startswith("backbone.")]
     if uexp:
         raise RuntimeError(f"Checkpoint has unexpected non-backbone keys: {uexp[:16]!r}")
+    fix_dinov3_rope_periods(model.backbone)
 
 
 def _write_local_bundle(model: TextConditionedVisionModel, hub_cfg: dict[str, Any], out_dir: Path) -> None:

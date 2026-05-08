@@ -32,6 +32,7 @@ from main import (
     DEFAULT_CLIP_TEXT_ID,
     TextConditionedVisionModel,
     _extract_model_pixel_values,
+    fix_dinov3_rope_periods,
     load_vision_processor,
     resolve_vision_model_id,
 )
@@ -367,6 +368,7 @@ def _load_csp_textconditioned(
     if load_backbone_weights:
         if isinstance(bb, dict) and bb:
             model.backbone.load_state_dict(bb, strict=True)
+            fix_dinov3_rope_periods(model.backbone)
         else:
             raise ValueError(
                 "CSP bundle must contain a non-empty 'backbone' dict when loading finetuned vision weights."
@@ -422,6 +424,7 @@ def _backbone_to_eager_attn(model: TextConditionedVisionModel, ijepa_id: str, de
         attn_implementation="eager",
     )
     bb.load_state_dict(model.backbone.state_dict(), strict=True)
+    fix_dinov3_rope_periods(bb)
     bb.to(device)
     bb.eval()
     model.backbone = bb

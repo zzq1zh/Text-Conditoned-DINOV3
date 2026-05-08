@@ -27,6 +27,7 @@ from main import (
     TextConditionedVisionModel,
     VISION_BACKBONE_PRESETS,
     _extract_model_pixel_values,
+    fix_dinov3_rope_periods,
     load_vision_processor,
     resolve_vision_model_id,
 )
@@ -776,6 +777,7 @@ def run_csp_eval_only(args: argparse.Namespace) -> None:
     bb = bundle.get("backbone")
     if isinstance(bb, dict) and bb:
         model.backbone.load_state_dict(bb, strict=True)
+        fix_dinov3_rope_periods(model.backbone)
         print("Loaded vision backbone weights from CSP bundle.", flush=True)
     elif finetune_v:
         print(
@@ -920,6 +922,7 @@ def _load_base_checkpoint_if_any(model: TextConditionedVisionModel, checkpoint: 
     res = model.load_state_dict(state, strict=False)
     if res.unexpected_keys:
         raise RuntimeError(f"Unexpected keys in checkpoint: {res.unexpected_keys[:12]}")
+    fix_dinov3_rope_periods(model.backbone)
     print(
         "Loaded base checkpoint with strict=False "
         f"(missing={len(res.missing_keys)}, unexpected={len(res.unexpected_keys)})",

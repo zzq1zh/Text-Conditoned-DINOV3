@@ -30,6 +30,7 @@ from main import (
     TextConditionedVisionModel,
     VISION_BACKBONE_PRESETS,
     _extract_model_pixel_values,
+    fix_dinov3_rope_periods,
     load_vision_processor,
     resolve_vision_model_id,
 )
@@ -1534,6 +1535,7 @@ def run_eval_only(args: argparse.Namespace) -> None:
         if ckpt:
             state = torch.load(ckpt, map_location="cpu", weights_only=True)
             model.load_state_dict(state, strict=True)
+            fix_dinov3_rope_periods(model.backbone)
             print(f"Loaded weights from {ckpt}", flush=True)
         else:
             print(
