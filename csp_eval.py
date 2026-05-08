@@ -34,8 +34,6 @@ def compute_auc_csp_style(
 ) -> float:
     """
     CSP-style AUC: sweep an unseen-class bias and integrate seen/unseen top-1 trade-off.
-
-    Returns NaN when seen/unseen supervision is unavailable or the split lacks both kinds.
     """
     if not logits_list or not labels_list or not seen_flags_list:
         return float("nan")
@@ -195,16 +193,14 @@ def make_fixed_bank_forward(
 @torch.inference_mode()
 def eval_clip_style_classification(
     loader: DataLoader,
-    device: torch.device,
     *,
     num_classes: int,
-    use_amp: bool,
     forward_batch: Callable[[dict[str, Any]], tuple[torch.Tensor, torch.Tensor | None]],
     modules_to_eval: Iterable[nn.Module] | None = None,
 ) -> tuple[float, float, float, float, float, float, float, float]:
     """
-    Mean loss (if ``forward_batch`` returns a non-None per-batch loss), top-1 / top-5,
-    CSP AUC, and seen vs unseen top-k when ``pair_seen_in_train`` exists in batches.
+    Mean loss (if forward_batch returns a non-None per-batch loss), top-1 / top-5,
+    CSP AUC, and seen vs unseen top-k when pair_seen_in_train exists in batches.
     """
     if modules_to_eval is not None:
         for m in modules_to_eval:

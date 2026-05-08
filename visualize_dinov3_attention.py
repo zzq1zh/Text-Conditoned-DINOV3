@@ -122,8 +122,7 @@ def _eva_attention_softmax_probs(
     is_causal: bool,
 ) -> torch.Tensor:
     """
-    Recompute timm :class:`EvaAttention` softmax weights ``(B, H, N, N)`` (matches forward, no dropout).
-    Used because fused SDPA does not expose attention maps and timm forbids ``output_attentions``.
+    Recompute EvaAttention softmax weights (B, H, N, N) (matches forward, no dropout).
     """
     if type(attn_mod).__name__ != "EvaAttention":
         raise TypeError(f"Expected EvaAttention, got {type(attn_mod).__name__}")
@@ -336,7 +335,6 @@ def _load_csp_textconditioned(
     *,
     load_backbone_weights: bool,
 ) -> TextConditionedVisionModel:
-    """Instantiate :class:`TextConditionedVisionModel` from bundle; optionally skip backbone tensors."""
     ba = _bundle_training_args(bundle)
     finetune_v = bool(_resolve_args_field(ba, "finetune_vision_backbone", False))
     clip_id = str(_resolve_args_field(ba, "clip", DEFAULT_CLIP_TEXT_ID) or DEFAULT_CLIP_TEXT_ID)
@@ -438,7 +436,6 @@ def _load_csp_tc_with_eager_backbone(
     *,
     load_backbone_weights: bool,
 ) -> TextConditionedVisionModel:
-    """Build :class:`TextConditionedVisionModel` from a CSP bundle, then reload ``model.backbone`` eager (compare path)."""
     m = _load_csp_textconditioned(bundle, csp_meta, device, load_backbone_weights=load_backbone_weights)
     _backbone_to_eager_attn(m, _ijepa_id_from_bundle(bundle), device)
     return m
@@ -455,7 +452,7 @@ def _csp_logits_one_image(
     allowed_class_indices: list[int] | None,
     use_amp: bool,
 ) -> torch.Tensor:
-    """Classification logits ``(1, num_classes)`` (optional eval-style class mask)."""
+    """Classification logits (1, num_classes)."""
     c_full = len(csp_meta.pairs)
     pv = pixel_values.to(device, dtype=torch.float32, non_blocking=True)
     with torch.amp.autocast(
@@ -536,7 +533,6 @@ def _scan_csp_contrast_samples(
     use_amp: bool,
     seed: int,
 ) -> list[_CspContrastSample]:
-    """Scan only ``tvt.test`` (for CSP Hub datasets this is the official ``test`` split only)."""
     ba = _bundle_training_args(bundle_tuned)
     vf = float(_resolve_args_field(ba, "val_fraction", 0.1))
     ss = int(_resolve_args_field(ba, "split_seed", 0))
@@ -648,7 +644,6 @@ def _save_csp_compare_sample_artifacts(
     out_dir: Path,
     dataset_key: str,
 ) -> None:
-    """Write one PNG per sample plus ``manifest.json`` with labels and pair strings."""
     out_dir = Path(out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
     manifest_samples: list[dict[str, Any]] = []

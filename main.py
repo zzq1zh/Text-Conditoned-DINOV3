@@ -38,10 +38,10 @@ def load_clip_text_encoder_for_conditioning(clip_model_id: str) -> CLIPTextModel
         torch.cuda.empty_cache()
     return text
 
-# Hub checkpoint ids for `--vision-backbone` presets. Default alias: ``dinov3`` (HF native ViT weights).
+# Hub checkpoint ids for `--vision-backbone` presets. Default alias: ``dinov3``.
 DEFAULT_IJEPA_ID = "facebook/ijepa_vith14_1k"
 DEFAULT_VJEPA_ID = "facebook/vjepa2-vitl-fpc64-256"
-DEFAULT_DINOV3_ID = "facebook/dinov3-vitb16-pretrain-lvd1689m"
+DEFAULT_DINOV3_ID = "timm/vit_base_patch16_dinov3.lvd1689m"
 VISION_BACKBONE_PRESETS: dict[str, str] = {
     "ijepa": DEFAULT_IJEPA_ID,
     "vjepa": DEFAULT_VJEPA_ID,
@@ -53,7 +53,7 @@ DEFAULT_CLIP_TEXT_ID = "openai/clip-vit-base-patch32"
 
 @dataclass
 class VisionBackbonePipeline:
-    """Holds a vision backbone :class:`~transformers.PreTrainedModel`, its processor, and device."""
+    """Holds a vision backbone"""
 
     model: PreTrainedModel
     processor: Any
@@ -69,7 +69,6 @@ def normalize_backbone_name(backbone: str) -> str:
 def resolve_vision_model_id(backbone: str = "dinov3", model_id: str = "") -> str:
     """
     Resolve the vision backbone id from an alias or explicit model id override.
-    Explicit ``model_id`` wins to preserve backward compatibility.
     """
     mid = (model_id or "").strip()
     if mid:
@@ -84,7 +83,6 @@ def resolve_vision_model_id(backbone: str = "dinov3", model_id: str = "") -> str
 def _extract_model_pixel_values(processed: dict[str, torch.Tensor]) -> torch.Tensor:
     """
     Extract pixel values from an image/video processor output and normalize to one key.
-    Supports image models (``pixel_values``) and video models (``pixel_values_videos``).
     """
     if "pixel_values" in processed:
         return processed["pixel_values"]
@@ -98,18 +96,14 @@ def _extract_model_pixel_values(processed: dict[str, torch.Tensor]) -> torch.Ten
 
 
 def _hub_id_needs_trust_remote_code(model_id: str) -> bool:
-    """Custom code on Hub (official DINOv3 ViT + timm-wrapped checkpoints)."""
+    """Custom code on Hub with official DINOv3 ViT + timm-wrapped checkpoints."""
     mid = (model_id or "").strip().lower()
     return mid.startswith("timm/") or mid.startswith("facebook/dinov3") or "/dinov3" in mid
 
 
 def load_pretrained_vision_backbone(model_id: str, **kwargs: Any) -> PreTrainedModel:
     """
-    Load ``AutoModel`` for a vision backbone id.
-
-    Uses ``trust_remote_code`` for Hugging Face DINOv3 ViT/TIMM hubs. Legacy
-    ``timm/vit_*_dinov3.*`` wrappers may set ``global_pool='token'`` on
-    ``TimmWrapperConfig`` only; native ``facebook/dinov3-*`` does not use timm.
+    Load AutoModel for a vision backbone id.
     """
     mid = (model_id or "").strip()
     load_kw = dict(kwargs)
@@ -124,12 +118,6 @@ def load_pretrained_vision_backbone(model_id: str, **kwargs: Any) -> PreTrainedM
 
 
 def fix_dinov3_rope_periods(model: nn.Module) -> None:
-    """
-    timm-wrapped DINOv3 on Hugging Face (``TimmWrapperModel``) may expose
-    ``model.rope.periods``. Apply a bf16→float32 round-trip for stability.
-
-    Native ``facebook/dinov3-*`` uses ``rope_embeddings`` instead; this is a no-op.
-    """
     rope = getattr(model, "rope", None)
     if rope is None or not hasattr(rope, "periods"):
         return
@@ -146,7 +134,6 @@ def fix_dinov3_rope_periods(model: nn.Module) -> None:
 def load_vision_processor(model_id: str) -> Any:
     """
     Load image/video processor for a backbone id.
-    Prefers ``AutoImageProcessor`` and falls back to ``AutoVideoProcessor``.
     """
     mid = (model_id or "").strip()
     ik: dict[str, Any] = {}
@@ -164,8 +151,7 @@ def load_vision_backbone_pipeline(
     dtype: torch.dtype | None = None,
 ) -> VisionBackbonePipeline:
     """
-    Load a vision backbone and preprocessor from the Hugging Face Hub (``AutoModel`` + image/video processor).
-    Typical ViTs expose patch tokens in ``last_hidden_state`` (mean-pool for a global vector for heads).
+    Load a vision backbone and preprocessor from the Hugging Face Hub.
     """
     if device is not None:
         dev = torch.device(device)
@@ -187,7 +173,6 @@ def forward_vision_backbone(
 ) -> torch.Tensor:
     """
     Run the loaded vision backbone and return a token sequence
-    ``(batch, seq_len, hidden)``. Caller may mean-pool for classification.
     """
     pixel_values = pixel_values.to(device=pipe.device, dtype=next(pipe.model.parameters()).dtype)
     with torch.inference_mode(), torch.autocast(
@@ -215,7 +200,6 @@ def forward_vision_backbone(
 def vision_backbone_embed_dim(model: PreTrainedModel) -> int:
     """
     Patch/token embedding width for ViT-style vision backbones.
-    Standard HF ViTs use ``config.hidden_size``; timm-wrapped models use ``config.num_features``.
     """
     cfg = model.config
     hs = getattr(cfg, "hidden_size", None)
@@ -232,7 +216,7 @@ def vision_backbone_embed_dim(model: PreTrainedModel) -> int:
 
 class TextConditioningModule(nn.Module):
     """
-    Encodes text with a frozen (by default) CLIP text+projection stack, then maps
+    Encodes text with a frozen CLIP text and projection stack, then maps
     to a fixed conditioning size for the fusion head.
     """
 
@@ -343,7 +327,7 @@ class FusionHead(nn.Module):
 
 class TextConditionedVisionModel(nn.Module):
     """
-    Vision backbone (I-JEPA / ViT / DINOv3) optionally frozen + text conditioning + fusion scorer.
+    Vision backbone (I-JEPA / ViT / DINOv3).
     """
 
     def __init__(
@@ -382,9 +366,6 @@ class TextConditionedVisionModel(nn.Module):
         self.cond_dim = cond_dim
 
     def encode_image(self, pixel_values: torch.Tensor) -> torch.Tensor:
-        """
-        Returns ``(B, N, D)`` token features for ``cross_attention``, else mean-pooled ``(B, D)``.
-        """
         use_token_seq = self.fusion.fusion_type == "cross_attention"
         if self.freeze_vision_backbone:
             with torch.inference_mode():
@@ -446,13 +427,6 @@ class TextConditionedVisionModel(nn.Module):
     ) -> torch.Tensor:
         """
         Score all candidates for each image.
-        image_feats: ``(B, D_v)`` or ``(B, N, D_v)`` (tokens for cross-attention),
-        candidate_text_embeds: (C, Dt) -> scores: (B, C)
-
-        For ``cross_attention`` with token sequences ``(B, N, D)``, scoring all pairs
-        used to expand to ``(B*C, N, D)`` and run MHA once, which blows memory when
-        ``B*C`` is large.  We instead walk pair indices in blocks of ``pair_chunk_size``
-        and call ``score_pairs`` on thin slices (peak memory scales with ``pair_chunk_size``).
         """
         b = image_feats.size(0)
         c = candidate_text_embeds.size(0)
@@ -499,9 +473,6 @@ class TextConditionedVisionModel(nn.Module):
         input_ids: torch.Tensor,
         attention_mask: torch.Tensor,
         labels: torch.Tensor | None = None,
-        neg_input_ids: torch.Tensor | None = None,
-        neg_attention_mask: torch.Tensor | None = None,
-        contrast_loss_weight: float = 0.0,
     ) -> dict[str, Any]:
         # Backward-compatible pairwise forward for a provided text batch.
         z = self.encode_image(pixel_values)

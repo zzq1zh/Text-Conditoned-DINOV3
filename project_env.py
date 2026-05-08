@@ -13,9 +13,7 @@ _env_file_cache: dict[str, str | None] | None = None
 
 def load_project_env() -> bool:
     """
-    Load variables from repo ``.env`` into ``os.environ`` for keys other than
-    ``WANDB_API_KEY`` (existing environment variables are not overridden).
-    The API key stays in the file only; use :func:`get_wandb_api_key`.
+    Load variables from repo .env into os.environ for keys other than WANDB_API_KEY.
     """
     global _env_file_cache
     path = _ROOT / ".env"
@@ -34,7 +32,6 @@ def load_project_env() -> bool:
 
 
 def get_wandb_api_key() -> str:
-    """Return ``WANDB_API_KEY`` from repo ``.env`` (stripped). Not read from ``os.environ``."""
     global _env_file_cache
     if _env_file_cache is None:
         load_project_env()
@@ -43,5 +40,4 @@ def get_wandb_api_key() -> str:
 
 
 def wandb_configured() -> bool:
-    """True when repo ``.env`` defines a non-empty ``WANDB_API_KEY``."""
     return bool(get_wandb_api_key())

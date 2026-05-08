@@ -30,14 +30,14 @@ DATASET_CONFIG: dict[str, dict[str, Any]] = {
 
 
 def list_vision_dataset_keys() -> list[str]:
-    """Return sorted keys accepted by :func:`load_vision_dataset`."""
+    """Return sorted keys"""
     return sorted(DATASET_CONFIG.keys())
 
 
 def _prepare_csp_ref_datasetdict(raw: DatasetDict, path_for_err: str) -> DatasetDict:
     """
     Build/normalize pair-based labels for CSP-reference HF repos.
-    Uses the ``pair`` string when present, otherwise falls back to ``attr`` + ``obj``.
+    Uses the pair string when present, otherwise falls back to attr + obj.
     """
     if not isinstance(raw, DatasetDict):
         raise TypeError(f"Expected DatasetDict for CSP ref {path_for_err!r}, got {type(raw).__name__}")
@@ -96,8 +96,7 @@ def _prepare_csp_ref_datasetdict(raw: DatasetDict, path_for_err: str) -> Dataset
 
 def load_vision_huggingface_as_dataset_dict(dataset_key: str) -> DatasetDict:
     """
-    Load a registry entry: HF ``DatasetDict`` with ``train`` / ``val`` / ``test``,
-    normalized via :func:`_prepare_csp_ref_datasetdict`.
+    Load a registry entry.
     """
     if dataset_key not in DATASET_CONFIG:
         known = ", ".join(list_vision_dataset_keys())
@@ -141,7 +140,7 @@ def load_vision_dataset(
     Load one CSP-reference split from the registry.
 
     Returns:
-        dataset: column ``img`` or ``image`` (PIL), labels under ``label_key``
+        dataset: column img or image (PIL), labels under label_key
         class_names: ClassLabel order matching integer ids
         label_key: feature name for the label column
     """
@@ -163,7 +162,7 @@ def load_vision_dataset(
 
 
 def get_image_column(dataset: Dataset) -> str:
-    """Return ``img`` or ``image`` if present."""
+    """Return img or image if present."""
     for key in ("img", "image"):
         if key in dataset.column_names:
             return key
@@ -192,7 +191,7 @@ class VisionBatchSpec:
 @dataclass(frozen=True)
 class VisionTrainTestVal:
     """
-    Published Hub ``train`` / ``val`` / ``test`` for CSP-reference datasets.
+    Published Hub train / val / test for CSP-reference datasets.
     """
 
     train: VisionBatchSpec
@@ -217,10 +216,6 @@ def _build_spec_from_part(
 
 def load_vision_train_val_test_specs(
     dataset_key: str,
-    train_hub_split: str = "train",
-    test_hub_split: str = "test",
-    val_fraction: float = 0.1,
-    split_seed: int = 0,
     max_train_samples: int | None = None,
     max_val_samples: int | None = None,
     max_test_samples: int | None = None,

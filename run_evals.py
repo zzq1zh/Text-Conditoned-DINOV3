@@ -38,9 +38,7 @@ _RE_CSPV_LOOSE = re.compile(rf"^csp_vocab_({_BACKBONE})_(.+)_s(\d+)_(.+)$")
 
 def _parse_run_checkpoint_stem(path: Path, kind: str) -> dict[str, str | int] | None:
     """
-    Parse ``run_*_train.py`` checkpoint stem into vision_backbone / dataset / seed.
-
-    ``kind`` is ``text_cond`` or ``csp_vocab`` from :func:`_detect_kind` (file contents).
+    Parse run_*_train.py checkpoint stem into vision_backbone / dataset / seed.
     """
     stem = path.stem
     if kind == "csp_vocab":

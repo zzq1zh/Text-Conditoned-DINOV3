@@ -17,6 +17,9 @@ from torch.utils.data import DataLoader, Dataset
 from tqdm import tqdm
 from transformers import AutoTokenizer
 
+from io import BytesIO
+from PIL import Image as PILImage
+
 import project_env
 
 project_env.load_project_env()
@@ -79,10 +82,6 @@ def _make_wandb_images(
     max_images: int,
     class_names: list[str] | None = None,
 ) -> list[Any]:
-    """
-    One W&B image panel (2x4-style grid) with predicted / true labels.
-    Matches ``text_cond_train._make_wandb_images`` (duplicated to avoid importing that module).
-    """
     import wandb
     from PIL import Image, ImageDraw
 
@@ -175,7 +174,6 @@ def _msamples(x: int) -> int | None:
 
 
 def _default_save_from_base(base_checkpoint: str) -> str:
-    """``path/model.pt`` -> ``path/model_csp_vocab.pt``; no base -> ``csp_vocab_posttrain.pt``."""
     b = (base_checkpoint or "").strip()
     if not b:
         return "csp_vocab_posttrain.pt"
@@ -261,10 +259,6 @@ def _resolve_train_device(args: argparse.Namespace) -> torch.device:
 
 
 def _hf_image_to_pil_rgb(img: Any) -> Any:
-    from io import BytesIO
-
-    from PIL import Image as PILImage
-
     if isinstance(img, PILImage.Image):
         return img.convert("RGB")
     if isinstance(img, dict):
@@ -390,7 +384,7 @@ def _clip_text_embeds_from_inputs_embeds(
     attention_mask: torch.Tensor,
 ) -> torch.Tensor:
     """
-    Run CLIP text tower on pre-built ``inputs_embeds`` (BOS + soft prompts + EOS).
+    Run CLIP text tower on pre-built inputs_embeds.
     """
     tm = clip_text_with_proj.text_model
     hidden = tm.embeddings(inputs_embeds=inputs_embeds)
@@ -525,7 +519,7 @@ class CspCompositionVocab(nn.Module):
         device: torch.device | str | None = None,
     ) -> torch.Tensor:
         """
-        Embed only selected global pair rows (indices into ``meta.pairs``, shape (K,)).
+        Embed selected global pair rows.
         """
         dev = self.attr_prompt.device if device is None else torch.device(device)
         idx = pair_row_indices.detach().cpu().long().view(-1)
@@ -592,8 +586,6 @@ def _make_csp_eval_forward(
     use_amp: bool,
     allowed_class_indices: list[int] | None = None,
 ) -> Callable[[dict[str, Any]], tuple[torch.Tensor, torch.Tensor | None]]:
-    """Per-batch forward for :func:`eval_clip_style_classification` (composed text bank + contrastive loss)."""
-
     c_full = len(csp_meta.pairs)
     allowed_t: torch.Tensor | None
     g2l: torch.Tensor | None

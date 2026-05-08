@@ -97,7 +97,6 @@ DEFAULT_WANDB_PROJECT = "csci1430-final-project"
 
 
 def _default_wandb_project() -> str:
-    """``WANDB_PROJECT`` in .env overrides this (loaded before argparse via ``project_env``)."""
     p = (os.environ.get("WANDB_PROJECT") or DEFAULT_WANDB_PROJECT).strip()
     return p or DEFAULT_WANDB_PROJECT
 
@@ -216,10 +215,6 @@ def _msamples(x: int) -> int | None:
 
 
 def _resolve_hub_repo_id(hub_model_id: str) -> str:
-    """
-    - Empty -> ``""`` (no upload / no Hub eval).
-    - Non-empty must be a full Hub id ``namespace/name`` (must contain ``/``); no auto prefix.
-    """
     s = (hub_model_id or "").strip()
     if not s:
         return ""
@@ -232,7 +227,6 @@ def _resolve_hub_repo_id(hub_model_id: str) -> str:
 
 
 def _arg_was_explicit(argv: list[str], key: str) -> bool:
-    """Whether ``--key`` (or ``--key=...``) was explicitly passed by the user."""
     opt = f"--{key.replace('_', '-')}"
     for t in argv:
         if t == opt or t.startswith(opt + "="):
@@ -309,9 +303,7 @@ def _apply_hyperparams_from_file(args: argparse.Namespace, argv: list[str]) -> N
 
 def _resolve_train_device(args: argparse.Namespace) -> torch.device:
     """
-    Default training device: use the first available CUDA GPU when ``torch.cuda.is_available()``.
-    Use ``--cpu`` or ``--device cpu`` to force CPU, or ``--device cuda`` to
-    require a GPU and fail if CUDA is not available.
+    Default training device: use the first available CUDA GPU when torch.cuda.is_available()
     """
     if args.cpu or args.device == "cpu":
         return torch.device("cpu")
@@ -328,10 +320,6 @@ def _resolve_train_device(args: argparse.Namespace) -> torch.device:
 
 
 class HfPilImageDataset(Dataset):
-    """
-    HuggingFace row -> ``dict`` with ``image``, ``label``, and optional ``pos`` / ``neg_0``..``neg_3``
-    (CLEVR-style CSP Hub rows).
-    """
 
     def __init__(self, hf_subset: Any, image_key: str, label_key: str) -> None:
         self.hf = hf_subset
@@ -368,7 +356,7 @@ def make_collate_fn(
     processor: Any,
 ) -> Any:
     """
-    Batches samples into ``pixel_values`` + long labels (+ optional seen flag).
+    Batches samples into pixel_values + long labels (+ optional seen flag).
     Text embeddings are precomputed from the global candidate pool.
     """
 
@@ -410,7 +398,6 @@ def _build_candidate_text_bank(
 ) -> torch.Tensor:
     """
     Precompute candidate text embeddings for all classes.
-    Returns tensor of shape (C, cond_dim) on ``device``.
     """
     prompts = [text_template.format(c=c) for c in class_names]
     chunks: list[torch.Tensor] = []
@@ -523,7 +510,7 @@ def _build_eval_preview_images(
     max_images: int,
     class_names: list[str],
 ) -> list[Any]:
-    """Collect one evaluation preview batch as ``wandb.Image`` list."""
+    """Collect one evaluation preview batch"""
     for batch in loader:
         pv = batch["pixel_values"].to(device, non_blocking=True)
         y = batch["labels"].to(device, non_blocking=True)
@@ -833,7 +820,7 @@ def run_finetune(args: argparse.Namespace) -> None:
     t0 = time.time()
 
     for epoch in range(args.epochs):
-        # One bank per epoch for training (rebuilding every step would be costly).
+        # One bank per epoch for training, rebuilding every step would be costly.
         candidate_text_bank = _build_candidate_text_bank(
             model,
             tok,
@@ -921,7 +908,7 @@ def run_finetune(args: argparse.Namespace) -> None:
             )
             global_step += 1
 
-        # Val must use text embeddings from the *current* adapter after this epoch's updates.
+        # Val must use text embeddings from the current adapter after this epoch's updates.
         # (Training still uses the bank built at epoch start for speed; see loop above.)
         candidate_text_bank = _build_candidate_text_bank(
             model,
@@ -1013,10 +1000,6 @@ def _checkpoints_dir() -> Path:
 
 
 def _default_finetune_save_path(args: argparse.Namespace) -> str:
-    """
-    Default ``--save`` for standard training when ``--save`` is omitted.
-    Matches ``run_text_cond_train.py`` naming (under ``checkpoints/``).
-    """
     model_tag = str(args.vision_backbone).replace("-", "")
     dataset_tag = str(args.dataset).replace("-", "_")
     fusion_fs = str(args.fusion_type).replace("_", "-")
@@ -1031,7 +1014,6 @@ def _default_csp_vocab_train_wandb_run_name(args: argparse.Namespace) -> str:
 
 
 def _default_csp_vocab_bundle_save_path(args: argparse.Namespace) -> str:
-    """Default ``--save`` when ``--finetune-csp-vocab`` and ``--save`` omitted."""
     model_tag = str(args.vision_backbone).replace("-", "")
     dataset_tag = str(args.dataset).replace("-", "_")
     fusion_fs = str(args.fusion_type).replace("_", "-")
