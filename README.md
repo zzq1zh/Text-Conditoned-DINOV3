@@ -33,8 +33,6 @@ If Hugging Face reports that you do not have access to DINOv3, please request ac
 
 Once your request is approved, rerun the loading step.
 
-Hugging Face Hub upload or gated model access uses the credential from `huggingface-cli login`.
-
 ## Quick Start
 
 Hyperparameters from `hyperparameters.json` unless overridden. Add `--no-wandb` to skip W&B.
