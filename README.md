@@ -31,7 +31,7 @@ If Hugging Face reports that you do not have access to DINOv3, please request ac
 
 [![Hugging Face](https://img.shields.io/badge/🤗-facebook%2Fdinov3--vitb16--pretrain--lvd1689m-yellow)](https://huggingface.co/facebook/dinov3-vitb16-pretrain-lvd1689m)
 
-Once your request is approved, rerun the loading step.
+Once your request is approved, please log in to your Hugging Face account using `hf auth login`.
 
 ## Quick Start
 
