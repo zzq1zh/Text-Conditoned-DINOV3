@@ -25,6 +25,14 @@ Recommended `.env` keys:
 - `WANDB_API_KEY` (if using W&B)
 - `WANDB_PROJECT` (optional default project name)
 
+### DINOv3 Access
+
+If Hugging Face reports that you do not have access to DINOv3, please request access on the model page:
+
+[![Hugging Face](https://img.shields.io/badge/🤗-facebook%2Fdinov3--vitb16--pretrain--lvd1689m-yellow)](https://huggingface.co/facebook/dinov3-vitb16-pretrain-lvd1689m)
+
+Once your request is approved, rerun the loading step.
+
 Hugging Face Hub upload or gated model access uses the credential from `huggingface-cli login`.
 
 ## Quick Start
