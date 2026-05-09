@@ -534,12 +534,8 @@ def _scan_csp_contrast_samples(
     seed: int,
 ) -> list[_CspContrastSample]:
     ba = _bundle_training_args(bundle_tuned)
-    vf = float(_resolve_args_field(ba, "val_fraction", 0.1))
-    ss = int(_resolve_args_field(ba, "split_seed", 0))
     tvt = load_vision_train_val_test_specs(
         dataset_key,
-        val_fraction=vf,
-        split_seed=ss,
         max_train_samples=None,
         max_val_samples=None,
         max_test_samples=None,

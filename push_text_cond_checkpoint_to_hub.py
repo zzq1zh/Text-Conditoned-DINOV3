@@ -99,8 +99,6 @@ def _build_hub_config(
             )
         tvt = load_vision_train_val_test_specs(
             dataset_key,
-            val_fraction=float(val_fraction),
-            split_seed=int(split_seed),
             max_train_samples=None,
             max_val_samples=None,
             max_test_samples=None,

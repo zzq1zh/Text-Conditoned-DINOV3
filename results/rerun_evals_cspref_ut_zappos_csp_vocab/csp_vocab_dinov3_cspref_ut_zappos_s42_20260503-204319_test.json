@@ -1,0 +1,22 @@
+{
+  "run_type": "csp_vocab_eval",
+  "dataset": "cspref_ut_zappos",
+  "split": "test",
+  "seed": 42,
+  "fusion_type": "clip_similarity",
+  "experiment_tag": "rerun-csp_vocab_dinov3_cspref_ut_zappos_s42_20260503-204319-20260508-184026",
+  "checkpoint": "/mnt/d/CSCI1430_Homeworks/final-project/checkpoints/csp_vocab_dinov3_cspref_ut_zappos_s42_20260503-204319.pt",
+  "from_hub": "",
+  "lr": 0.0005,
+  "weight_decay": 1e-05,
+  "loss": 3.4079620838165283,
+  "top1": 0.2734375,
+  "top5": 0.6796875,
+  "seen_top1": 0.14634146341463414,
+  "seen_top5": 0.5609756097560976,
+  "unseen_top1": 0.3333333333333333,
+  "unseen_top5": 0.735632183908046,
+  "auc_csp_style": 0.21348471931783142,
+  "batch_size": 128,
+  "timestamp_unix": 1778281089
+}

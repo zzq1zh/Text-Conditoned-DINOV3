@@ -658,8 +658,6 @@ def run_finetune(args: argparse.Namespace) -> None:
         )
     tvt = load_vision_train_val_test_specs(
         args.dataset,
-        val_fraction=args.val_fraction,
-        split_seed=args.split_seed,
         max_train_samples=_msamples(int(args.max_train_samples)),
         max_val_samples=_msamples(int(args.max_val_samples)),
         max_test_samples=None,
@@ -929,9 +927,7 @@ def run_finetune(args: argparse.Namespace) -> None:
             val_unseen_top5,
         ) = eval_clip_style_classification(
             val_loader,
-            device,
             num_classes=n_classes,
-            use_amp=(device.type == "cuda" and args.amp),
             forward_batch=make_fixed_bank_forward(
                 model,
                 device,
@@ -1049,8 +1045,6 @@ def run_finetune_csp_vocab(args: argparse.Namespace) -> None:
 
     tvt = load_vision_train_val_test_specs(
         args.dataset,
-        val_fraction=args.val_fraction,
-        split_seed=args.split_seed,
         max_train_samples=_msamples(int(args.max_train_samples)),
         max_val_samples=_msamples(int(args.max_val_samples)),
         max_test_samples=None,
@@ -1412,9 +1406,7 @@ def run_finetune_csp_vocab(args: argparse.Namespace) -> None:
                 val_unseen_top5,
             ) = eval_clip_style_classification(
                 val_loader,
-                device,
                 num_classes=n_classes,
-                use_amp=use_amp_eval,
                 forward_batch=_make_csp_eval_forward(
                     model,
                     csp_vocab,
@@ -1505,8 +1497,6 @@ def run_eval_only(args: argparse.Namespace) -> None:
     me = _msamples(int(args.max_eval_samples))
     tvt = load_vision_train_val_test_specs(
         args.dataset,
-        val_fraction=args.val_fraction,
-        split_seed=args.split_seed,
         max_train_samples=None,
         max_val_samples=me if args.eval_split == "val" else None,
         max_test_samples=me if args.eval_split == "test" else None,
@@ -1603,9 +1593,7 @@ def run_eval_only(args: argparse.Namespace) -> None:
         unseen_top5,
     ) = eval_clip_style_classification(
         loader,
-        device,
         num_classes=n_classes,
-        use_amp=(device.type == "cuda" and args.amp),
         forward_batch=make_fixed_bank_forward(
             model,
             device,
